@@ -1,0 +1,2 @@
+Train a travel time prediction model to obtain representations of segments (saves as TestSeg_emb.npy) 
+and predict the travel time for each segment (saved as TestTime_pre.npy)

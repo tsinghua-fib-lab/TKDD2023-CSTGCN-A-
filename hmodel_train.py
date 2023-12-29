@@ -146,13 +146,12 @@ def test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scal
         found_rate,paths_list,ts, results_nh,results_our_nh = astar_test_nh(args_dict, weight, batch_size, num_states, env,scalar, test_queries)
         print("Astar Test without hn time: %.2f" % (time.time() - start_time3))
         #basic
-        print("\nStartting Basic Test without hn......")
+        print("\nStartting Basic Test......")
         start_time2_2 = time.time()
         results_basic_file = "%s/%s" % (args_dict['save_dir'], 'result_basic_'+t+'.pkl')
-        results_static_file = "%s/%s" % (args_dict['save_dir'], 'result_static_'+t+'.pkl')
         env.setPassTimeMatrix(data_time_label)
         found_rate,paths_list,ts, results_nh,results_basic = astar_test_nh(args_dict, weight, batch_size, num_states, env,scalar, test_queries)
-        print("Basic Test without hn time: %.2f" % (time.time() - start_time2_2))
+        print("Basic Test time: %.2f" % (time.time() - start_time2_2))
 
         time_our = time_cal(test_queries,results_our['paths_list'],data_time_label,env.nid_pair_to_rid)
         time_basic = time_cal(test_queries,results_basic['paths_list'],data_time_label,env.nid_pair_to_rid)
@@ -276,7 +275,7 @@ def main():
     # print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
     #load data
-    data_yes = np.load(args_dict["data_hmodel"]+"yes_info.npy")
+    data_yes = np.load(args_dict["data_hmodel"]+"yesterday_info.npy")
     segs_num = data_yes.shape[1]
     with open(args_dict["data_hmodel"]+"node_adj_c.pkl","rb") as f:
         state_tran = pickle.load(f)
@@ -304,7 +303,6 @@ def main():
     with open(args_dict["dataset_roadid_length"],"rb") as f:
         dis_dict = pickle.load(f) 
     min_dis = np.mean(list(dis_dict.values()))
-    # min_gps = np.mean(list(link_gps_start.values()),axis=0).tolist()
     link_num = data_yes.shape[1]
     for i in range(1,link_num+1):
         if i not in dis_dict.keys():

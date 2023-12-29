@@ -25,8 +25,6 @@ from utils import nnet_utils_dataset_a as nnet_utils
 from utils.mae_dataset_a import DataLoader,DataLoader_Edit,StandardScaler
 from utils.main_fun import *
 import warnings
-from utils.earlystopping import EarlyStopping
-from torch.utils.tensorboard import SummaryWriter
 warnings.simplefilter("ignore")  
 import copy
 import json
@@ -96,7 +94,7 @@ def test_dataset(args_dict,env,device,dataloader_test,scaler,scalar_dis):
                                             astar_seg_embs_pad,astar_routes_len,scaler,scalar_dis,if_train=False)
 
 
-def test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scalar,scalar_dis):
+def test(args_dict, env, data_time_pre, data_time_label, state_tran,scalar,scalar_dis):
 
     i=0
     
@@ -106,19 +104,16 @@ def test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scal
 
     with open(args_dict["test_queries_path"],"rb") as f:
         test_queries_dict = pickle.load(f)
-
-    env.setPassTimeMatrix(data_time_pre)
-    for t in ["des1","des2","des3"]:
+    env.set_mode("test")
+   
+    for t in ["des2","des3"]:
     # for t in ["des1"]:
         print("Calculating ",t,"......")
         time_test_1 = time.time()
 
-        results_file = "%s/%s" % (args_dict['save_dir'], 'r_'+t+'_astar_info.pkl')
-        results_file_p = "%s/%s" % (args_dict['save_dir'], 'result_'+t+'.pkl')
-        results_file_p_nh = "%s/%s" % (args_dict['save_dir'], 'result_'+t+'_nh.pkl')
         test_queries = test_queries_dict[t]
 
-        env.set_mode("test")
+        env.setPassTimeMatrix(data_time_pre)
         #Astar
         weight_t = 1.5 # larger->more accurate but slower
         print("\nStartting Astar Test .....")
@@ -133,97 +128,25 @@ def test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scal
         found_rate,paths_list,ts, results_nh,results_our_nh = astar_test_nh(args_dict, weight, batch_size, num_states, env,scalar, test_queries)
         print("Astar Test without hn time: %.2f" % (time.time() - start_time3))
         #basic
-        print("\nStartting Basic Test without hn......")
+        print("\nStartting Basic Test......")
         start_time2_2 = time.time()
         results_basic_file = "%s/%s" % (args_dict['save_dir'], 'result_basic_'+t+'.pkl')
-        results_static_file = "%s/%s" % (args_dict['save_dir'], 'result_static_'+t+'.pkl')
         env.setPassTimeMatrix(data_time_label)
         found_rate,paths_list,ts, results_nh,results_basic = astar_test_nh(args_dict, weight, batch_size, num_states, env,scalar, test_queries)
-        print("Basic Test without hn time: %.2f" % (time.time() - start_time2_2))
+        print("Basic Test time: %.2f" % (time.time() - start_time2_2))
 
         time_our = time_cal(test_queries,results_our['paths_list'],data_time_label,env.nid_pair_to_rid)
         time_basic = time_cal(test_queries,results_basic['paths_list'],data_time_label,env.nid_pair_to_rid)
         score1,score2 = cal_sacore(time_our,time_basic)
-        print("Dataset",t,"Score 1:",score1,"Score 2:",score2)
 
         
         time_nh = time_cal(test_queries,results_our_nh['paths_list'],data_time_label,env.nid_pair_to_rid)
-
-        if_save = False
-        if if_save:
-            pickle.dump(results, open(results_file, "wb"), protocol=-1)
-            pickle.dump(results_our, open(results_file_p, "wb"), protocol=-1)
-            pickle.dump(results_our_nh, open(results_file_p_nh, "wb"), protocol=-1)
-            pickle.dump(results_basic, open(results_basic_file, "wb"), protocol=-1)
-
         print("Dataset",t,"Score 1:",score1,"Score 2:",score2)
         score1_nh,score2_nh = cal_sacore(time_nh,time_basic)
         print("Dataset",t,"Score 1_nh:",score1_nh,"Score 2_nh:",score2_nh)
 
         time_test_2 = time.time()
         print("Test Time of ",t," : ",time_test_2-time_test_1)
-
-
-
-        if t == "des1":
-            writer.add_scalars('score',{'score1_des1': score1,'score2_des1':score2} , i)
-        elif t == "des2":
-            writer.add_scalars('score',{'score1_des2': score1,'score2_des2':score2} , i)
-        elif t == "des3":
-            writer.add_scalars('score',{'score1_des3': score1,'score2_des3':score2} , i)
-
-def train(args_dict, device, dataloader, dataloader_val, dataloader_test, env, scalar, scalar_dis, writer):  
-    # load nnet
-    nnet: nn.Module
-    nnet = load_nnet(args_dict['curr_dir'],env)
-    nnet.to(device)
-
-    nnet.if_training = args_dict["if_training"]
-    nnet.loss_cat = args_dict["loss_cat"]
-    nnet.AutoWeightedLoss = args_dict["AutoWeightedLoss"]
-
-    early_stopping = EarlyStopping(save_path = args_dict['curr_dir'], patience=100)
-    for i in range(1000):
-        print("i:",i)
-        dataloader.shuffle()
-        LSTT = 5
-        if i>=LSTT:
-            nnet.LNT = False
-        for _ ,(states_nnet, astar_label,astar_dis_label, astar_seg_embs_pad, astar_routes_len) in enumerate(dataloader.get_iterator()):
-
-            last_loss,mape,mae,mean_preds,mean_labels,std_preds,std_labels = nnet_utils.train_nnet(nnet, states_nnet,args_dict, astar_label,astar_dis_label, device,
-                                            astar_seg_embs_pad,astar_routes_len,scalar,scalar_dis,if_train=True)
-
-        for _ ,(states_nnet, astar_label,astar_dis_label, astar_seg_embs_pad, astar_routes_len) in enumerate(dataloader_val.get_iterator()):
-        
-            last_loss_val,mape_val,mae_val,mean_preds_val,mean_labels_val,std_preds_val,std_labels_val = nnet_utils.train_nnet(nnet, states_nnet,args_dict, astar_label,astar_dis_label, device,
-                                                astar_seg_embs_pad,astar_routes_len,scalar,scalar_dis,if_train=False)
-        for _ ,(states_nnet, astar_label,astar_dis_label, astar_seg_embs_pad, astar_routes_len) in enumerate(dataloader_test.get_iterator()):
-        
-            last_loss_test,mape_test,mae_test,mean_preds_test,mean_labels_test,std_preds_test,std_labels_test = nnet_utils.train_nnet(nnet, states_nnet,args_dict, astar_label,astar_dis_label, device,
-                                                astar_seg_embs_pad,astar_routes_len,scalar,scalar_dis,if_train=False)
-
-        writer.add_scalars('loss', {"train":last_loss,"val":last_loss_val,"test":last_loss_test}, i)
-        writer.add_scalars('mape', {"train":mape,"val":mape_val,"test":mape_test}, i)
-        writer.add_scalars('mae', {"train":mae,"val":mae_val,"test":mae_test}, i)
-        writer.add_scalars('mean_preds', {"train":mean_preds,"val":mean_preds_val,"test":mean_preds_test}, i)
-        writer.add_scalars('mean_labels', {"train":mean_labels,"val":mean_labels_val,"test":mean_labels_test}, i)
-        writer.add_scalars('std_preds', {"train":std_preds,"val":std_preds_val,"test":std_preds_test}, i)
-        writer.add_scalars('std_labels', {"train":std_labels,"val":std_labels_val,"test":std_labels_test}, i)
-
-        # save nnet
-        torch.save(nnet.state_dict(), "%s/model_state_dict.pt" % args_dict['curr_dir'])
-
-        if i>=LSTT:
-            early_stopping(last_loss_val, nnet)
-            if early_stopping.early_stop:
-                print("Early stopping")
-                break 
-        # clear cuda memory
-        torch.cuda.empty_cache()
-        # print("Auxiliaryloss was %f / Mainloss is %f" % (last_loss_2,last_loss_1))
-        print("Last loss was %f " % (last_loss))
-
 
 def pad_dict_with_zeros(input_dict):
     output_dict = {}
@@ -246,10 +169,7 @@ def main():
     for key in args_dict:
         print("%s: %s" % (key, args_dict[key]))
 
-    # # get device
-    # on_gpu: bool
-    # device: torch.device
-    # device, devices, on_gpu = nnet_utils.get_device()
+
     ###
     print("Device:")
     print(torch.cuda.is_available())
@@ -260,10 +180,8 @@ def main():
     on_gpu = True
     print("device: %s, on_gpu: %s" % (device, on_gpu))
 
-    # print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
-
     #load data
-    data_yes = np.load(args_dict["data_hmodel"]+"yes_info.npy")
+    data_yes = np.load(args_dict["data_hmodel"]+"yesterday_info.npy")
     segs_num = data_yes.shape[1]
     with open(args_dict["data_hmodel"]+"node_adj_c.pkl","rb") as f:
         state_tran = pickle.load(f)
@@ -291,7 +209,6 @@ def main():
     with open(args_dict["dataset_roadid_length"],"rb") as f:
         dis_dict = pickle.load(f) 
     min_dis = np.mean(list(dis_dict.values()))
-    # min_gps = np.mean(list(link_gps_start.values()),axis=0).tolist()
     link_num = data_yes.shape[1]
     for i in range(1,link_num+1):
         if i not in dis_dict.keys():
@@ -323,8 +240,6 @@ def main():
     scalar = StandardScaler(mean,std)
     scalar_dis = StandardScaler(mean_dis,std_dis)
 
-    writer = SummaryWriter(args_dict['save_dir']+"/log")
-
     model_dir: str = "%s/%s/" % (args_dict['save_dir'], args_dict['nnet_name'])
     args_save_loc = "%sargs.pkl" % model_dir
     print("Loading arguments from %s" % args_save_loc)
@@ -340,7 +255,7 @@ def main():
     data_time_pre = np.load(args_dict["data_hmodel"]+"TestTime_pre.npy")[...,0]
     data_time_pre = np.absolute(data_time_pre)
     data_time_label = np.load(args_dict["data_hmodel"]+"Testlabel.npy")
-    test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scalar,scalar_dis)
+    test(args_dict, env, data_time_pre, data_time_label, state_tran, scalar,scalar_dis)
 
     print("Done")        
 
