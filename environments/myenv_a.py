@@ -147,7 +147,7 @@ class GridWorld(Environment):
             passtime = self.get_passtime(cur_node,next_node,cur_time)
             tc.append(passtime) 
             
-            next_time = cur_time + int(passtime*self.time_norm/300)
+            next_time = cur_time + int(passtime*self.time_norm/900)
             if next_time>=self.world_time:
                 next_time = self.world_time - 1
             states_next.append(RFState(np.array([next_time,next_node,des])))
@@ -366,7 +366,7 @@ class GridWorld(Environment):
             # tc[i,:] = passtime    
 
             next_segs = next_state_space + (self.action_space_size - action_num)*[0]
-            next_time = cur_time + int(passtime//300)
+            next_time = cur_time + int(passtime//900)
             if next_time>=self.world_time:
                 next_time = self.world_time - 1
 
