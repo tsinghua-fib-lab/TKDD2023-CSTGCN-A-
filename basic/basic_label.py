@@ -41,19 +41,12 @@ class AStar():
             return v
 
     def heuristic_cost_estimate(self, current, goal):
-        # gps_c = self.gpsList[current-1]
-        # gps_g = self.gpsList[goal-1]
-        # h_cost = np.linalg.norm(gps_g-gps_c)*self.gps_norm
-        # return h_cost
+
         return 0
 
     def distance_between(self, start_time, gscore, n1, n2):
-        # now_time = start_time + int(gscore/(60*5))
-        # if now_time>=287:
-        #     now_time = 287
+
         pre_time = int(gscore//900)
-        # if pre_time>5:
-        #     pre_time = 5
         now_time = (start_time+pre_time)%self.data.shape[0]   
         if self.Rmode:
             return self.data[now_time,n1 - 1]
@@ -190,12 +183,11 @@ def basic_label(data,dis_dict,state_tran,test_queries,seg_embs_data,mode,np_to_r
                 dis_query = dis_query + dis_dict[id]
         else:
             path_list = [id for id in path]
-            # 计算path两两之间的距离
             for i in range(len(path_list)-1):
                 dis_query = dis_query + dis_dict[np_to_rid[(path_list[i],path_list[i+1])]]
         dis_list.append(dis_query)
 
-        slot_list = [slot for slot in path_timeslot]# 存放当前已经度过的时间片（这里设置的900s为1个时间片）
+        slot_list = [slot for slot in path_timeslot]
         paths_lists.append(copy.deepcopy(path_list))
         slots_lists.append(copy.deepcopy(slot_list))
         
@@ -207,8 +199,6 @@ def basic_label(data,dis_dict,state_tran,test_queries,seg_embs_data,mode,np_to_r
         start_slot = int(data[start_time,0,1])
         
         for i in range(len(path_list)-1):
-            #百度数据集是双向路 ，此处应该处理
-            # rid = path_list[i]#NASF中节点的编号比其他方法中-1
             rid = np_to_rid[(path_list[i],path_list[i+1])]
             seg_time = start_slot+slot_list[i]
             seg_day = start_day
@@ -218,7 +208,6 @@ def basic_label(data,dis_dict,state_tran,test_queries,seg_embs_data,mode,np_to_r
                     seg_day = 1
                 else:
                     seg_day = start_day + 1      
-            # emb_s = seg_embs_data[seg_time,rid]
             emb_s = seg_embs_data[start_slot,rid]
             seg_emb_one.append(copy.deepcopy(emb_s))
             seg_time_one.append(seg_time)
@@ -226,7 +215,6 @@ def basic_label(data,dis_dict,state_tran,test_queries,seg_embs_data,mode,np_to_r
         seg_embs.append(torch.tensor(np.stack(seg_emb_one)))
         seg_days.append(torch.tensor(np.array(seg_day_one)))
         seg_times.append(torch.tensor(np.array(seg_time_one)))
-        # seg_embs_pad = pad_sequence(seg_embs, batch_first = True)
         routes_len.append(len(seg_emb_one))
 
     return np.array(time_list).reshape(-1,1),np.array(dis_list).reshape(-1,1),seg_embs,routes_len,seg_days,seg_times

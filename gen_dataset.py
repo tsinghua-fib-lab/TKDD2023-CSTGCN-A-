@@ -16,10 +16,10 @@ def parse_arguments(parser: ArgumentParser) -> Dict[str, Any]:
     # Training
     parser.add_argument('--batch_size', type=int, default=1024, help="Batch size")
     parser.add_argument('--mode', type=str, default="test", help="")
-    parser.add_argument('--dataset_source', type=str, default="./data_hmodel/data_QT/data_notbaseline/", help="")
-    parser.add_argument('--dataset_source2', type=str, default="./data_hmodel/data_QT_pred/", help="")
-    parser.add_argument('--dataset_roadid_length', type=str, default="./data_hmodel/data_QT_pred/roadid_length.pkl", help="")
-    parser.add_argument('--dataset_dir', type=str, default="./dataset_traj_QT/", help="")
+    parser.add_argument('--data_gmodel', type=str, default="./data_gmodel/", help="")
+    parser.add_argument('--data_hmodel', type=str, default="./data_hmodel/", help="")
+    parser.add_argument('--dataset_roadid_length', type=str, default="./data_hmodel/roadid_length.pkl", help="")
+    parser.add_argument('--dataset_dir', type=str, default="./data_hmodel_traj/", help="")
     # parse arguments
     args = parser.parse_args()
     args_dict: Dict[str, Any] = vars(args)
@@ -32,21 +32,21 @@ def main(args_dict):
 
     #load data
     if args_dict["mode"] == "train":
-        data_train = np.load(args_dict["dataset_source"]+"val.npz")['y'][:,0,:,:]
+        data_train = np.load(args_dict["data_gmodel"]+"val.npz")['y'][:,0,:,:]
         args_dict["time_num"] = data_train.shape[0]
         args_dict["nodes_num"] = data_train.shape[1]
         
     elif args_dict["mode"] == "val":
-        data_train = np.load(args_dict["dataset_source"]+"val.npz")['y'][:,0,:,:]
+        data_train = np.load(args_dict["data_gmodel"]+"val.npz")['y'][:,0,:,:]
         args_dict["time_num"] = data_train.shape[0]
         args_dict["nodes_num"] = data_train.shape[1]
     elif args_dict["mode"] == "test":
-        data_train = np.load(args_dict["dataset_source"]+"test.npz")['y'][:,0,:,:]
+        data_train = np.load(args_dict["data_gmodel"]+"test.npz")['y'][:,0,:,:]
         args_dict["time_num"] = data_train.shape[0]
         args_dict["nodes_num"] = data_train.shape[1]
     dataset_dir = args_dict["dataset_dir"]+args_dict["mode"]+".pkl"
 
-    seg_embs = np.load(args_dict["dataset_source2"]+"TestSeg_emb.npy")
+    seg_embs = np.load(args_dict["data_hmodel"]+"TestSeg_emb.npy")
     if seg_embs.shape[1] == args_dict["nodes_num"]:
         seg_embs = np.concatenate([np.zeros([seg_embs.shape[0],1,seg_embs.shape[2]]),seg_embs],axis=1)
     if args_dict["mode"] == "train":
@@ -54,23 +54,23 @@ def main(args_dict):
     else:
         num_data = 30
 
-    with open(args_dict["dataset_source2"]+"node_adj_c.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"node_adj_c.pkl","rb") as f:
         state_tran = pickle.load(f)
     
-    with open(args_dict["dataset_source2"]+"node_gps_dict.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"node_gps_dict.pkl","rb") as f:
         link_gps_start = pickle.load(f)
     for key in sorted(link_gps_start.keys()):
         if link_gps_start[key] == []:
             link_gps_start[key] = link_gps_start[key-1]
 
-    with open(args_dict["dataset_source2"]+"nodeid_pair_to_roadid.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"nodeid_pair_to_roadid.pkl","rb") as f:
         np_to_rid = pickle.load(f)
 
-    with open(args_dict["dataset_source2"]+"node_segs_c.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"node_segs_c.pkl","rb") as f:
         node_segs = pickle.load(f)
     
     
-    node_connected_list = np.load(args_dict["dataset_source2"]+"node_connected_list.npy").tolist()
+    node_connected_list = np.load(args_dict["data_hmodel"]+"node_connected_list.npy").tolist()
     with open(args_dict["dataset_roadid_length"],"rb") as f:
         dis_dict = pickle.load(f)
     min_dis = np.mean(list(dis_dict.values()))

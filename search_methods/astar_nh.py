@@ -91,15 +91,12 @@ class Instance:
 
     def push_to_open(self, nodes: List[Node], masks: List[np.ndarray]):
         for node, mask in zip(nodes, masks):
-            # heappush(self.open_set, (node.cost, self.heappush_count, node, mask))
-            # self.heappush_count += 1
+
             if node.out_openset:
                 node.out_openset = False
                 heappush(self.open_set, (node, mask.tolist()))
             else:
-                # print("Replace Open")
-                # print([self.open_set[i][0].state.colors for i in range(len(self.open_set))])
-                # print(node.state.colors, mask.tolist())
+
                 self.open_set.remove((node, mask.tolist()))
                 heappush(self.open_set, (node, mask.tolist()))                
 
@@ -275,7 +272,6 @@ def add_heuristic_and_cost(nodes: List[Node], scalar, heuristic_fn: Callable,
     states: List[State] = [node.state for node in nodes]
 
     # compute node cost
-    # heuristics = heuristic_fn(states,scalar)
     heuristics = np.zeros(len(states))
     path_costs: np.ndarray = np.array([node.path_cost for node in nodes])
     is_solved: np.ndarray = np.array([node.is_solved for node in nodes])
@@ -295,10 +291,7 @@ def add_to_open(instances: List[Instance], nodes: List[List[Node]], masks: List[
     masks_inst: List[np.ndarray]
     instance: Instance
     for instance, nodes_inst, masks_inst in zip(instances, nodes, masks):
-        # if len(nodes_inst)>1:
-        #     index = np.argmin([node.cost for node in nodes_inst])
-        #     instance.push_to_open([nodes_inst[index]], [masks_inst[index]])
-        # else:
+
         instance.push_to_open(nodes_inst, masks_inst)
 
 
@@ -358,11 +351,6 @@ class AStar:
         start_time = time.time()
         popped_nodes_all, popped_masks_all = pop_from_open(instances, batch_size)
 
-        # for nl in popped_nodes_all:
-        #     polist = [node.state.colors for node in nl]
-        #     colist = [node.cost for node in nl]
-        #     hlist = [node.heuristic for node in nl]
-        # print("Pop List: ",polist,"Cost List:",colist,"Heuristic List",hlist)
 
         # List[List[Node]]
         pop_time = time.time() - start_time
@@ -373,7 +361,7 @@ class AStar:
 
         # Expand nodes
         start_time = time.time()
-        nodes_c_all, masks_c_all= expand_nodes(instances, popped_nodes_all, self.env)# 每次扩展新节点就会验证新节点是否到终点了
+        nodes_c_all, masks_c_all= expand_nodes(instances, popped_nodes_all, self.env)
 
 
         # List[List[Node]]  List[List[np.ndarray]] 
@@ -391,19 +379,15 @@ class AStar:
         start_time = time.time()
         nodes_c_all, masks_c_all = remove_not_able(instances, nodes_c_all, masks_c_all )
         check_time = time.time() - start_time
-        # polist = []
-        # for nl in nodes_c_all:
-        #     polist = [node.state.colors for node in nl]
-        # print("Expend List: ",polist)
+
+
 
         # Check if children are in closed
         start_time = time.time()
         nodes_c_all, masks_c_all = remove_in_closed(instances, nodes_c_all, masks_c_all )
         check_time = time.time() - start_time
         polist = []
-        # for nl in nodes_c_all:
-        #     polist = [node.state.colors for node in nl]
-        # print("Expend Not in Closed List: ",polist)
+
 
         # Add to open
         start_time = time.time()
@@ -423,9 +407,6 @@ class AStar:
                 max_heur_pc = path_costs[heuristics<10000][np.argmax(heuristics[heuristics<10000])]
                 print("Itr: %i, Added to OPEN - Min/Max Heur(PathCost): "
                     "%.2f(%.2f)/%.2f(%.2f) " % (self.step_num, min_heur, min_heur_pc, max_heur, max_heur_pc))          
-
-            # print("Times - pop: %.2f, expand: %.2f, check: %.2f, heur: %.2f, "
-            #       "add: %.2f, itr: %.2f" % (pop_time, expand_time, check_time, heur_time, add_time, itr_time))
 
         # Update timings
         self.timings['pop'] += pop_time
@@ -507,8 +488,7 @@ def bwas_t(args_dict, weight, batch_size, env: Environment, scalar, states: List
     # print to screen
     timing_str = ", ".join(["%s: %.2f" % (key, val) for key, val in astar.timings.items()])
     print("Times - %s, num_itrs: %i" % (timing_str, num_itrs))
-    solncost_list = []
-    moves_list = []
+
     nodes_gen_list = []
     for state_idx in range(len(states)):
         state = states[state_idx]
@@ -536,17 +516,11 @@ def bwas_t(args_dict, weight, batch_size, env: Environment, scalar, states: List
 
             # check soln
             assert search_utils.is_valid_soln(state, soln, env)
-            # print("State: %i, SolnCost: %.2f, # Moves: %i, "
-            #     "# Nodes Gen: %s, Time: %.2f" % (state_idx, path_cost, len(soln),
-            #                                     format(num_nodes_gen_idx, ","),
-            #                                     solve_time))
-            solncost_list.append(path_cost)
-            moves_list.append(len(soln))
+
             nodes_gen_list.append(num_nodes_gen_idx)
     found_rate = found_num/(not_found_num+found_num)
-        # print("not_found_num:",not_found_num,"found_num:",found_num)
 
-    print("SolnCost:",round(np.mean(solncost_list),2),"Moves:",round(np.mean(moves_list),2),"Nodes Gen:",round(np.mean(nodes_gen_list),2))
+    print("Nodes Gen:",round(np.mean(nodes_gen_list),2))
 
     return solns, paths, times, num_nodes_gen, found_rate
 
@@ -586,11 +560,7 @@ def astar_test_nh(args_dict, weight, batch_size, num_states: int, env: Environme
             t1 = env.get_passtime(route[i],route[i+1],start_time,passed_time)  
             tims_p += t1
             path_l.append(route[i+1]) 
-        # for s in path:
-        #     q = s.colors
-        #     path_l.append(q[1]) 
-        #     t1 = env.get_passtime(q[1],q[2],q[0])       
-        #     tims_p += t1
+
         paths_list.append(path_l)
         ts.append(round(tims_p,2))    
 
@@ -603,7 +573,6 @@ def astar_test_nh(args_dict, weight, batch_size, num_states: int, env: Environme
         qs.append(query)
     results_p["queries"] = np.vstack(qs)
 
-    # print("solns, paths, times, num_nodes_gen: ",solns, paths, times, num_nodes_gen)
     print("found_rate:",found_rate)
 
     return found_rate,paths_list,ts, results, results_p

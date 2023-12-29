@@ -35,14 +35,14 @@ early_stopping = EarlyStopping(save_path = save_path+"model/", patience=100)
 def main():
     
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    adj_mx = util_pre.load_adj(basepath+"dat_gmodel/adj_mx_QT.txt")
+    adj_mx = util_pre.load_adj(basepath+"dat_gmodel/adj_mx.txt")
     adj_mx = torch.tensor(adj_mx).to(device).float()
-    dataloader = util_pre.load_dataset(basepath+'data_gmodel/pstm_QT',basepath+'data_gmodel/em_QT',32,16,32)
+    dataloader = util_pre.load_dataset(basepath+'data_gmodel/pstm',basepath+'data_gmodel/em',32,16,32)
     scaler = dataloader['scaler']
     
     supports = None
     expid = 5
-    sys.stdout = Logger(save_path + "exp_QT_" + str(expid)+"_output.txt", "a")
+    sys.stdout = Logger(save_path + "exp_" + str(expid)+"_output.txt", "a")
     engine = trainer(scaler, 4, 24, 1161, 32, 0.3, 0.003, 0.0001, device, supports,adj_mx)
 
     if os.path.exists(save_path+"model/best_network.pt"):

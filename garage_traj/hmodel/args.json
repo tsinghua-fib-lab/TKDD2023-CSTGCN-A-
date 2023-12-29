@@ -1,0 +1,22 @@
+{
+    "time_num": 288,
+    "nodes_num": 1053,
+    "lr": 0.001,
+    "lr_d": 0.9999,
+    "batch_size": 256,
+    "nnet_name": "hmodel",
+    "save_dir": "garage_traj",
+    "if_training": true,
+    "if_save_args": true,
+    "test_queries_path": "./data_hmodel/test_queries.pkl",
+    "use_nodeid": true,
+    "loss_cat": "MAE",
+    "w": 0.9,
+    "if_use_mf": false,
+    "if_add_anode": false,
+    "AutoWeightedLoss": false,
+    "data_hmodel": "./data_hmodel/",
+    "dataset_roadid_length": "./data_hmodel/roadid_length.pkl",
+    "data_dir": "./data_hmodel_traj",
+    "curr_dir": "garage_traj/hmodel/current/"
+}

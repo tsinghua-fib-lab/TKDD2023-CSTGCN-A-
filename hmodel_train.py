@@ -41,20 +41,19 @@ def parse_arguments(parser: ArgumentParser) -> Dict[str, Any]:
                                                                       "lr * (lr_d ^ itr)")
     parser.add_argument('--batch_size', type=int, default=256, help="Batch size")
     parser.add_argument('--nnet_name', type=str, default = "hmodel", help="Name of neural network")
-    parser.add_argument('--save_dir', type=str, default="garage_traj_QT5", help="Director to which to save model")
+    parser.add_argument('--save_dir', type=str, default="garage_traj", help="Director to which to save model")
     parser.add_argument('--if_training', type=bool, default=True, help="if training with road,if use if_train will change the state of net(train() or eval()")
     parser.add_argument('--if_save_args', type=bool, default= True, help="if save args/ if test only then do not save")
-    parser.add_argument('--test_queries_path', type=str, default="./data_hmodel/data_QT_pred/test_queries.pkl", help="test_queries_dir")
+    parser.add_argument('--test_queries_path', type=str, default="./data_hmodel/test_queries.pkl", help="test_queries_dir")
     parser.add_argument('--use_nodeid', type=bool, default= True, help="if the net use node id")
     parser.add_argument('--loss_cat', type=str, default= "MAE", help="use which loss MAE or MAPE,default MAE")
     parser.add_argument('--w', type=float, default= 0.9, help="weight w")
     parser.add_argument('--if_use_mf', type=bool, default= False, help="if add the mean travel time of whole net to query feature")
     parser.add_argument('--if_add_anode', type=bool, default= False, help="if add the adjacent node embedding to query feature")
     parser.add_argument('--AutoWeightedLoss', type=bool, default= False, help="if use AutoWeightedLoss")
-    parser.add_argument('--dataset_source', type=str, default="./data_hmodel/data_QT/data_notbaseline/", help="")
-    parser.add_argument('--dataset_source2', type=str, default="./data_hmodel/data_QT_pred/", help="")
-    parser.add_argument('--dataset_roadid_length', type=str, default="./data_hmodel/data_QT_pred/roadid_length.pkl", help="")
-    parser.add_argument('--data_dir', type=str, default="./dataset_traj_QT/", help="")    
+    parser.add_argument('--data_hmodel', type=str, default="./data_hmodel/", help="")
+    parser.add_argument('--dataset_roadid_length', type=str, default="./data_hmodel/roadid_length.pkl", help="")
+    parser.add_argument('--data_dir', type=str, default="./data_hmodel_traj", help="")    
     # parse arguments
     args = parser.parse_args()
     args_dict: Dict[str, Any] = vars(args)
@@ -65,8 +64,6 @@ def parse_arguments(parser: ArgumentParser) -> Dict[str, Any]:
 
     if not os.path.exists(args_dict['curr_dir']):
         os.makedirs(args_dict['curr_dir'])
-
-    args_dict["output_save_loc"] = "%s/output.txt" % args_dict['save_dir']
 
     # save args
     if args_dict['if_save_args']:
@@ -110,17 +107,9 @@ def test_dataset(args_dict,env,device,dataloader_test,scaler,scalar_dis):
     for _ ,(states_nnet, astar_label,astar_dis_label, astar_seg_embs_pad, astar_routes_len) in enumerate(dataloader_test.get_iterator()):
         last_loss_test,mape_test,mae_test,mean_preds_test,mean_labels_test,std_preds_test,std_labels_test = nnet_utils.train_nnet(nnet, states_nnet,args_dict, astar_label,astar_dis_label, device,
                                             astar_seg_embs_pad,astar_routes_len,scaler,scalar_dis,if_train=False)
-        # print("Test main loss is %f " % (last_loss_1_test))
-        # print("Test Auxiliary loss is %f " % (last_loss_2_test))
-        print("Test loss is %f " % (last_loss_test))
-        print("Test mape is %f " % (mape_test))
-        print("Test mae is %f " % (mae_test))
-        print("Test mean_preds is %f " % (mean_preds_test))
-        print("Test mean_labels is %f " % (mean_labels_test))
-        print("Test std_preds is %f " % (std_preds_test))
-        print("Test std_labels is %f " % (std_labels_test))
 
-def test(args_dict, env, data_time_pre, data_time_static, data_time_label, state_tran, writer,scalar,scalar_dis):
+
+def test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scalar,scalar_dis):
 
     i=0
     
@@ -170,15 +159,8 @@ def test(args_dict, env, data_time_pre, data_time_static, data_time_label, state
         score1,score2 = cal_sacore(time_our,time_basic)
         print("Dataset",t,"Score 1:",score1,"Score 2:",score2)
 
-
-        start_time4 = time.time()
-        env.setPassTimeMatrix(data_time_static)
-        found_rate,paths_list,ts, results_nh,results_basic_static = astar_test_nh(args_dict, weight, batch_size, num_states, env,scalar, test_queries)
-        print("Static Basic Test time: %.2f" % (time.time() - start_time4))
-
         
         time_nh = time_cal(test_queries,results_our_nh['paths_list'],data_time_label,env.nid_pair_to_rid)
-        time_staic = time_cal(test_queries,results_basic_static['paths_list'],data_time_label,env.nid_pair_to_rid)
 
         if_save = False
         if if_save:
@@ -186,14 +168,10 @@ def test(args_dict, env, data_time_pre, data_time_static, data_time_label, state
             pickle.dump(results_our, open(results_file_p, "wb"), protocol=-1)
             pickle.dump(results_our_nh, open(results_file_p_nh, "wb"), protocol=-1)
             pickle.dump(results_basic, open(results_basic_file, "wb"), protocol=-1)
-            pickle.dump(results_basic_static, open(results_static_file, "wb"), protocol=-1)
 
         print("Dataset",t,"Score 1:",score1,"Score 2:",score2)
         score1_nh,score2_nh = cal_sacore(time_nh,time_basic)
         print("Dataset",t,"Score 1_nh:",score1_nh,"Score 2_nh:",score2_nh)
-
-        score1_staic,score2_staic = cal_sacore(time_staic,time_basic)
-        print("Dataset",t,"Score 1_staic:",score1_staic,"Score 2_staic:",score2_staic)
 
         time_test_2 = time.time()
         print("Test Time of ",t," : ",time_test_2-time_test_1)
@@ -278,7 +256,6 @@ def main():
     parser: ArgumentParser = ArgumentParser()
     args_dict: Dict[str, Any] = parse_arguments(parser)
 
-    sys.stdout = data_utils.Logger(args_dict["output_save_loc"], "a")
     for key in args_dict:
         print("%s: %s" % (key, args_dict[key]))
 
@@ -299,12 +276,12 @@ def main():
     # print("device: %s, devices: %s, on_gpu: %s" % (device, devices, on_gpu))
 
     #load data
-    data_train = np.load(args_dict["dataset_source"]+"val.npz")['y'][:,0,:,:]
-    segs_num = data_train.shape[1]
-    with open(args_dict["dataset_source2"]+"node_adj_c.pkl","rb") as f:
+    data_yes = np.load(args_dict["data_hmodel"]+"yes_info.npy")
+    segs_num = data_yes.shape[1]
+    with open(args_dict["data_hmodel"]+"node_adj_c.pkl","rb") as f:
         state_tran = pickle.load(f)
-    seg_embs = np.load(args_dict["dataset_source2"]+"TestSeg_emb.npy")
-    seg_embs_train = np.load(args_dict["dataset_source2"]+"TestSeg_emb.npy")
+    seg_embs = np.load(args_dict["data_hmodel"]+"TestSeg_emb.npy")
+    seg_embs_train = np.load(args_dict["data_hmodel"]+"TestSeg_emb.npy")
     if seg_embs.shape[1] == segs_num:
         seg_embs = np.concatenate([np.zeros([seg_embs.shape[0],1,seg_embs.shape[2]]),seg_embs],axis=1)
     if seg_embs_train.shape[1] == segs_num:
@@ -312,12 +289,12 @@ def main():
 
     node_adj_pad,max_adj_num = pad_dict_with_zeros(state_tran)
     
-    with open(args_dict["dataset_source2"]+"node_segs_c.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"node_segs_c.pkl","rb") as f:
         node_segs = pickle.load(f)
 
-    node_connected_list = np.load(args_dict["dataset_source2"]+"node_connected_list.npy").tolist()
+    node_connected_list = np.load(args_dict["data_hmodel"]+"node_connected_list.npy").tolist()
 
-    with open(args_dict["dataset_source2"]+"node_gps_dict.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"node_gps_dict.pkl","rb") as f:
         link_gps_start = pickle.load(f)
     for key in sorted(link_gps_start.keys()):
         if link_gps_start[key] == []:
@@ -328,12 +305,12 @@ def main():
         dis_dict = pickle.load(f) 
     min_dis = np.mean(list(dis_dict.values()))
     # min_gps = np.mean(list(link_gps_start.values()),axis=0).tolist()
-    link_num = data_train.shape[1]
+    link_num = data_yes.shape[1]
     for i in range(1,link_num+1):
         if i not in dis_dict.keys():
             dis_dict[i] = min_dis
     
-    with open(args_dict["dataset_source2"]+"nodeid_pair_to_roadid.pkl","rb") as f:
+    with open(args_dict["data_hmodel"]+"nodeid_pair_to_roadid.pkl","rb") as f:
         np_to_rid = pickle.load(f)
 
 
@@ -343,8 +320,8 @@ def main():
     env.setDistance(dis_dict)
     # env.set_fea_data(mean_traffic, seg_embs, node_adj_pad)
     env.set_fea_data(seg_embs, node_segs,link_gps_start)
-    env.setPassTimeMatrix(data_train[:,:,0])   
-    env.setRoadinfo(data_train)
+    env.setPassTimeMatrix(data_yes[:,:,0])   
+    env.setRoadinfo(data_yes)
 
     env.use_nodeid = args_dict["use_nodeid"]
     env.if_use_mf = args_dict["if_use_mf"]
@@ -397,11 +374,10 @@ def main():
 
     test_dataset(args_dict,env,device,dataloader_test,scalar,scalar_dis)
 
-    data_time_pre = np.load(args_dict["dataset_source2"]+"TestTime_pre.npy")[...,0]
+    data_time_pre = np.load(args_dict["data_hmodel"]+"TestTime_pre.npy")[...,0]
     data_time_pre = np.absolute(data_time_pre)
-    data_time_static = np.load(args_dict["dataset_source"]+"test.npz")['x'][:,0,:,0]
-    data_time_label = np.load(args_dict["dataset_source"]+"test.npz")['y'][:,0,:,0]
-    test(args_dict, env, data_time_pre,data_time_static, data_time_label, state_tran, writer,scalar,scalar_dis)
+    data_time_label = np.load(args_dict["data_hmodel"]+"Testlabel.npy")
+    test(args_dict, env, data_time_pre, data_time_label, state_tran, writer,scalar,scalar_dis)
 
     print("Done")        
 
