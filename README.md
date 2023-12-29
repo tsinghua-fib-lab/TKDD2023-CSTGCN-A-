@@ -17,7 +17,8 @@ The code is tested under a Linux desktop with torch 1.13.1 and Python 3.10.9.
 2. Use the ``pip install -r requirements.txt`` command to install all of the Python modules and packages used in this project.
 
 ### Dataset
-https://drive.google.com/drive/folders/1LWbO8zjaRGUG4NK8Oshz43PeBPTRcJ9v?usp=drive_link
+
+Liao B, Zhang J, Wu C, et al. Deep sequence learning with auxiliary information for traffic prediction[C]//Proceedings of the 24th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining. 2018: 537-546.
 
 
 ## Usage
