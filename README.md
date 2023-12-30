@@ -3,17 +3,17 @@
 The official PyTorch implementation of "[Congestion-aware Spatio-Temporal Graph Convolutional Network Based A*
 Search Algorithm for Fastest Route Search]
 
-The code is tested under a Linux desktop with torch 1.13.1 and Python 3.10.9.
+The code is tested under a Linux desktop with torch 1.9 and Python 3.8.0.
 
 ## Installation
 
 ### Environment
 - Tested OS: Linux
-- Python == 3.10.9
-- PyTorch == 1.13.1
+- Python == 3.8.0
+- PyTorch == 1.9
 
 ### Dependencies
-1. Install PyTorch 1.13.1 with the correct CUDA version.
+1. Install PyTorch 1.9 with the correct CUDA version.
 2. Use the ``pip install -r requirements.txt`` command to install all of the Python modules and packages used in this project.
 
 ### Dataset
